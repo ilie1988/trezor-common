@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-import re
+import json
 import os
+import re
 import subprocess
 import sys
+
 import click
+
 import coin_info
-import json
 
 SUPPORT_INFO = coin_info.get_support_data()
 
@@ -70,11 +72,7 @@ def print_support(coin):
     key, name, shortcut = coin["key"], coin["name"], coin["shortcut"]
     print(f"{key} - {name} ({shortcut})")
     if coin.get("duplicate"):
-        if coin_info.is_token(coin):
-            print(" * DUPLICATE SYMBOL (no support)")
-            return
-        else:
-            print(" * DUPLICATE SYMBOL")
+        print(" * DUPLICATE SYMBOL")
     for dev, where in SUPPORT_INFO.items():
         missing_means_no = dev in coin_info.MISSING_SUPPORT_MEANS_NO
         print(" *", dev, ":", support_value(where, key, missing_means_no))
@@ -84,7 +82,7 @@ def print_support(coin):
 
 
 def check_support_values():
-    def _check_value_version_soon(val):
+    def _check_value_version_soon(value):
         if not isinstance(value, str):
             raise ValueError(f"non-str value: {value}")
 
@@ -129,8 +127,6 @@ def find_unsupported_coins(coins_dict):
 
         result[device] = []
         for key, coin in coins_dict.items():
-            if coin.get("duplicate") and coin_info.is_token(coin):
-                continue
             if key not in support_set:
                 result[device].append(coin)
 
@@ -199,6 +195,16 @@ def process_erc20(coins_dict):
             clear_support(device, key)
 
 
+def clear_erc20_mixed_buckets(buckets):
+    for bucket in buckets.values():
+        tokens = [coin for coin in bucket if coin_info.is_token(coin)]
+        if tokens == bucket:
+            continue
+
+        if len(tokens) == 1:
+            tokens[0]["duplicate"] = False
+
+
 @click.group()
 def cli():
     pass
@@ -211,7 +217,8 @@ def fix(dry_run):
 
     Prunes orphaned keys and ensures that ERC20 duplicate info matches support info.
     """
-    all_coins, _ = coin_info.coin_info_with_duplicates()
+    all_coins, buckets = coin_info.coin_info_with_duplicates()
+    clear_erc20_mixed_buckets(buckets)
     coins_dict = all_coins.as_dict()
 
     orphaned = find_orphaned_support_keys(coins_dict)
@@ -227,24 +234,25 @@ def fix(dry_run):
 
 @cli.command()
 # fmt: off
-@click.option("-t", "--ignore-tokens", is_flag=True, help="Ignore unsupported ERC20 tokens")
+@click.option("-T", "--check-tokens", is_flag=True, help="Also check unsupported ERC20 tokens, ignored by default")
 @click.option("-m", "--ignore-missing", is_flag=True, help="Do not fail on missing supportinfo")
 # fmt: on
-def check(ignore_tokens, ignore_missing):
+def check(check_tokens, ignore_missing):
     """Check validity of support information.
 
     Ensures that `support.json` data is well formed, there are no keys without
     corresponding coins, and there are no coins without corresponding keys.
 
-    If `--ignore-tokens` is specified, the check will ignore ERC20 tokens
-    without support info. This is useful because there is usually a lot of ERC20
-    tokens.
+    If `--check-tokens` is specified, the check will also take into account ERC20 tokens
+    without support info. This is disabled by default, because support info for ERC20
+    tokens is not strictly required.
 
     If `--ignore-missing` is specified, the check will display coins with missing
     support info, but will not fail when missing coins are found. This is
     useful in Travis.
     """
-    all_coins, _ = coin_info.coin_info_with_duplicates()
+    all_coins, buckets = coin_info.coin_info_with_duplicates()
+    clear_erc20_mixed_buckets(buckets)
     coins_dict = all_coins.as_dict()
     checks_ok = True
 
@@ -261,7 +269,7 @@ def check(ignore_tokens, ignore_missing):
 
     missing = find_unsupported_coins(coins_dict)
     for device, values in missing.items():
-        if ignore_tokens:
+        if not check_tokens:
             values = [coin for coin in values if not coin_info.is_token(coin)]
         if values:
             if not ignore_missing:
@@ -271,7 +279,8 @@ def check(ignore_tokens, ignore_missing):
                 print(f"{coin['key']} - {coin['name']}")
 
     supported_dups = find_supported_duplicate_tokens(coins_dict)
-    for coin in supported_dups:
+    for key in supported_dups:
+        coin = coins_dict[key]
         checks_ok = False
         print(f"Token {coin['key']} ({coin['name']}) is duplicate but supported")
 
@@ -400,8 +409,7 @@ def release(
         ]
         for coin in soon_list:
             key = coin["key"]
-            print(f"Releasing {key} ({coin['name']}) marked 'soon'")
-            set_supported(device, key, version)
+            maybe_add(coin, "soon")
 
     # process missing (not listed) supportinfos
     if release_missing:
@@ -464,12 +472,6 @@ def set_support_value(key, entries, reason):
     (or null, in case of trezor1/2)
     Setting variable to empty ("trezor1=") will set to null, or clear the entry.
     Setting to "soon", "planned", "2.1.1" etc. will set the literal string.
-
-    Entries that are always present:
-    trezor1 trezor2 webwallet connect
-
-    Entries with other names will be inserted into "others". This is a good place
-    to store links to 3rd party software, such as Electrum forks or claim tools.
     """
     defs, _ = coin_info.coin_info_with_duplicates()
     coins = defs.as_dict()
@@ -481,7 +483,6 @@ def set_support_value(key, entries, reason):
     if coins[key].get("duplicate") and coin_info.is_token(coins[key]):
         shortcut = coins[key]["shortcut"]
         click.echo(f"Note: shortcut {shortcut} is a duplicate.")
-        click.echo(f"Coin will NOT be listed regardless of support.json status.")
 
     for entry in entries:
         try:

@@ -104,6 +104,8 @@ enum MessageType {
     MessageType_DebugLinkFlashErase = 113 [(wire_debug_in) = true];
 
     // Ethereum
+    MessageType_EthereumGetPublicKey = 450 [(wire_in) = true];
+    MessageType_EthereumPublicKey = 451 [(wire_out) = true];
     MessageType_EthereumGetAddress = 56 [(wire_in) = true];
     MessageType_EthereumAddress = 57 [(wire_out) = true];
     MessageType_EthereumSignTx = 58 [(wire_in) = true];
@@ -159,12 +161,6 @@ enum MessageType {
     MessageType_StellarBumpSequenceOp = 221 [(wire_in) = true];
     MessageType_StellarSignedTx = 230 [(wire_out) = true];
 
-    // TRON
-    MessageType_TronGetAddress = 250 [(wire_in) = true];
-    MessageType_TronAddress = 251 [(wire_out) = true];
-    MessageType_TronSignTx = 252 [(wire_in) = true];
-    MessageType_TronSignedTx = 253 [(wire_out) = true];
-
     // Cardano
     // dropped Sign/VerifyMessage ids 300-302
     MessageType_CardanoSignTx = 303 [(wire_in) = true];
@@ -175,20 +171,6 @@ enum MessageType {
     MessageType_CardanoAddress = 308 [(wire_out) = true];
     MessageType_CardanoTxAck = 309 [(wire_in) = true];
     MessageType_CardanoSignedTx = 310 [(wire_out) = true];
-
-    // Ontology
-    MessageType_OntologyGetAddress = 350 [(wire_in) = true];
-    MessageType_OntologyAddress = 351 [(wire_out) = true];
-    MessageType_OntologyGetPublicKey = 352 [(wire_in) = true];
-    MessageType_OntologyPublicKey = 353 [(wire_out) = true];
-    MessageType_OntologySignTransfer = 354 [(wire_in) = true];
-    MessageType_OntologySignedTransfer = 355 [(wire_out) = true];
-    MessageType_OntologySignWithdrawOng = 356 [(wire_in) = true];
-    MessageType_OntologySignedWithdrawOng = 357 [(wire_out) = true];
-    MessageType_OntologySignOntIdRegister = 358 [(wire_in) = true];
-    MessageType_OntologySignedOntIdRegister = 359 [(wire_out) = true];
-    MessageType_OntologySignOntIdAddAttributes = 360 [(wire_in) = true];
-    MessageType_OntologySignedOntIdAddAttributes = 361 [(wire_out) = true];
 
     // Ripple
     MessageType_RippleGetAddress = 400 [(wire_in) = true];
@@ -227,4 +209,32 @@ enum MessageType {
     MessageType_MoneroWatchKey = 543 [(wire_out) = true];
     MessageType_DebugMoneroDiagRequest = 546 [(wire_in) = true];
     MessageType_DebugMoneroDiagAck = 547 [(wire_out) = true];
+    MessageType_MoneroGetTxKeyRequest = 550 [(wire_in) = true];
+    MessageType_MoneroGetTxKeyAck = 551 [(wire_out) = true];
+    MessageType_MoneroLiveRefreshStartRequest = 552 [(wire_in) = true];
+    MessageType_MoneroLiveRefreshStartAck = 553 [(wire_out) = true];
+    MessageType_MoneroLiveRefreshStepRequest = 554 [(wire_in) = true];
+    MessageType_MoneroLiveRefreshStepAck = 555 [(wire_out) = true];
+    MessageType_MoneroLiveRefreshFinalRequest = 556 [(wire_in) = true];
+    MessageType_MoneroLiveRefreshFinalAck = 557 [(wire_out) = true];
+
+    // EOS
+    MessageType_EosGetPublicKey = 600 [(wire_in) = true];
+    MessageType_EosPublicKey = 601 [(wire_out) = true];
+    MessageType_EosSignTx = 602 [(wire_in) = true];
+    MessageType_EosTxActionRequest = 603 [(wire_out) = true];
+    MessageType_EosTxActionAck = 604 [(wire_in) = true];
+    MessageType_EosSignedTx = 605 [(wire_out) = true];
+
+    // Binance
+    MessageType_BinanceGetAddress = 700 [(wire_in) = true];
+    MessageType_BinanceAddress = 701 [(wire_out) = true];
+    MessageType_BinanceGetPublicKey = 702 [(wire_in) = true];
+    MessageType_BinancePublicKey = 703 [(wire_out) = true];
+    MessageType_BinanceSignTx = 704 [(wire_in) = true];
+    MessageType_BinanceTxRequest = 705 [(wire_out) = true];
+    MessageType_BinanceTransferMsg = 706 [(wire_in) = true];
+    MessageType_BinanceOrderMsg = 707 [(wire_in) = true];
+    MessageType_BinanceCancelMsg = 708 [(wire_in) = true];
+    MessageType_BinanceSignedTx = 709 [(wire_out) = true];
 }
